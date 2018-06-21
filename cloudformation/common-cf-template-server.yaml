@@ -1,0 +1,134 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Jenkins Service by Hao Wang
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Networking
+      Parameters:
+        - VPCCIDR
+        - PublicCIDR
+    - Label:
+        default: Application Instances
+      Parameters:
+        - JenkinsImageId
+        - JenkinsInstanceType
+        - KeyName
+    ParameterLabels:
+      JenkinsImageId:
+        default: Jenkins AWS AMI
+      JenkinsInstanceType:
+        default: Jenkins Node Instance Type
+      KeyName:
+        default: Key Name *
+      VPCCIDR:
+        default: VPC CidrBlock
+      PublicCIDR:
+        default: CidrBlock for Public Subnet
+Parameters:
+  JenkinsImageId:
+    Type: String
+  JenkinsInstanceType:
+    Type: String
+    Default: t2.small
+    Description: Instance Type for the Jenkins Node.
+  KeyName:
+    Description: The EC2 Key Pair to allow SSH access to the instances
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Must be the name of an existing EC2 Key Pair.
+  VPCCIDR:
+    Description: VPC CidrBlock
+    Type: String
+    Default: 10.0.0.0/16
+  PublicCIDR:
+    Description: Public CidrBlock
+    Type: String
+    Default: 10.0.1.0/24
+Resources:
+  JenkinsVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      CidrBlock: !Ref VPCCIDR
+      Tags:
+        - Key: Name
+          Value: JenkinsVPC
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  GatewayToInternet:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref JenkinsVPC
+      InternetGatewayId: !Ref InternetGateway
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref JenkinsVPC
+      MapPublicIpOnLaunch: true
+      CidrBlock: !Ref PublicCIDR
+      AvailabilityZone: !Select 
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref JenkinsVPC
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: PublicRouteTable
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group allowing SSH and HTTP/HTTPS access
+      VpcId: !Ref JenkinsVPC
+      SecurityGroupIngress:
+        # SSH
+        - IpProtocol: tcp
+          FromPort: '22'
+          ToPort: '22'
+          CidrIp: 0.0.0.0/0
+        # Jenkins
+        - IpProtocol: tcp
+          FromPort: '8080'
+          ToPort: '8080'
+          CidrIp: 0.0.0.0/0
+  JenkinsInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref JenkinsImageId
+      KeyName: !Ref KeyName
+      InstanceType: !Ref JenkinsInstanceType
+      SecurityGroupIds:
+        - !Ref SecurityGroup
+      SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: Name
+          Value: Jenkins
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash -xe
+          mkdir /tmp/ssm
+          cd /tmp/ssm
+          yum install -y https://s3.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/linux_amd64/amazon-ssm-agent.rpm
+          start amazon-ssm-agent
+  JenkinsElasticIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref JenkinsInstance
+Outputs:
+  JenkinsURL:
+    Description: Jenkins URL
+    Value:
+      !Join ['', ['http://', !Ref JenkinsElasticIP, ':8080']]

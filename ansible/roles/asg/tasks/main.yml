@@ -1,0 +1,78 @@
+---
+
+- name: ASG | Create Launch Config
+  ec2_lc:
+    region: "{{ vpc_region }}"
+    state: present
+    name: "{{ item.name }}"
+    image_id: "{{ item.ami_instance_id | default(ami_instance_id) }}"
+    key_name: "{{ key_name }}"
+    security_groups: "{{ jenkins_sg.results[0].group_id }}"
+    instance_type: "{{ item.instance_type }}"
+    assign_public_ip: "{{ item.public_ip | default (omit) }}"
+    ebs_optimized: "{{ item.ebs_optimized | default (omit) }}"
+    instance_profile_name: "{{ item.instance_iam_role | default (omit) }}"
+    instance_monitoring: "{{ item.instance_monitoring }}"
+    user_data: "{{ item.user_data }}"
+    volumes: "{{ item.volumes }}"
+  register: asg_lc_return
+  with_items:
+    - "{{ asg_lc_info }}"
+
+- name: Jenkins | Create Auto Scaling Group
+  ec2_asg:
+    region: "{{ vpc_region }}"
+    state: present
+    name: "{{ item.name }}"
+    launch_config_name: "{{ lc_name }}"
+    vpc_zone_identifier: "{{ item.subnets }}"
+    load_balancers: "{{ jenkins_elb.elb.name | default(omit) }}"
+    replace_all_instances: "{{ item.replace_all_instances | default(omit) }}"
+    replace_batch_size: "{{ item.replace_batch_size | default(omit) }}"
+    min_size: "{{ item.min_size | default(omit) }}"
+    max_size: "{{ item.max_size | default(omit) }}"
+    desired_capacity: "{{ item.desired_capacity | default(omit) }}"
+    default_cooldown: "{{ item.default_cooldown | default(omit) }}"
+    health_check_period: "{{ item.health_check_period | default(omit) }}"
+    health_check_type: "{{ item.health_check_type | default(omit) }}"
+    termination_policies: "{{ item.termination_policies | default(omit) }}"
+    wait_for_instances: "{{ item.wait_for_instances | default(omit) }}"
+    wait_timeout: "{{ item.wait_timeout | default(omit) }}"
+    tags:
+      - "{{ item.tags | default(tags) }}"
+  register: asg_return
+  with_items:
+    - "{{ asg_info }}"
+
+- name: ASG | Get Wordpress Instances
+  ec2_asg_facts:
+    region: "{{ vpc_region }}"
+    name: "{{ item.name }}"
+  with_items:
+    - "{{ asg_info }}"
+  register: asg_instances
+
+- name: Jenkins | Get public IPs
+  ec2_instance_facts:
+    region: "{{ vpc_region }}"
+    instance_ids: "{{ item.instance_id }}"
+  with_items: "{{ asg_instances.results[0].results[0].instances }}"
+  register: ec2_instance_ips
+
+- name: Clean up hosts file
+  shell: |
+    echo '[local]' > ./hosts
+    echo 'localhost' >> ./hosts
+    echo '[jenkins]' >> ./hosts
+- shell:
+    echo "{{ item.public_ip_address }}" >> ./hosts
+  with_items: "{{ ec2_instance_ips.results[0].instances }}"
+
+- name: Jenkins | Wait for SSH to come up
+  wait_for: 
+    host: "{{ item.public_ip_address }}" 
+    port: 22 
+    state: started
+  with_items: "{{ ec2_instance_ips.results[0].instances }}"
+
+...

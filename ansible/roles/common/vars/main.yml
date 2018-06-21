@@ -1,0 +1,7 @@
+---
+
+timezone: America/New_York
+pkgs_list:
+  - git
+
+...

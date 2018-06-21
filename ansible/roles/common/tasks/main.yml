@@ -1,0 +1,20 @@
+---
+
+- name: Ensure that the repositories are update
+  yum: 
+    update_cache: yes
+    name: "*"
+    state: latest
+
+- name: Install all the essential packages
+  yum:
+    name: "{{ ','.join(pkgs_list) }}"
+    state: latest
+
+- name: Set the provided Timezone
+  lineinfile:
+    path: /etc/sysconfig/clock
+    regexp: '^ZONE='
+    line: "ZONE={{ timezone }}"
+
+...

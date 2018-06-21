@@ -1,0 +1,9 @@
+---
+
+tags:
+  Name: "{{ application }}"
+  environment: "{{ env }}"
+  application: "{{ application }}"
+  server_role: "{{ server_role }}"
+
+...

@@ -1,0 +1,27 @@
+---
+
+bastion_info:
+  - name: Bastion
+    enabled: true
+    subnet_name: "{{ vpc_subnets | first }}"
+    security_group_name: instance-sg
+    tags:
+      Name: Bastion
+      environment: "{{ env }}"
+    keypair_name: "{{ key_name }}"
+    instance_type: "t2.micro"
+    ami_instance_id: "{{ aws_ami_map[aws_region] }}"
+    launch_count: 1
+    assign_public_ip: true
+    enable_cloudwatch: false
+    allocate_eip: true
+    volumes:
+      - device_name: /dev/xvda
+        volume_type: gp2
+        volume_size: 10
+        delete_on_termination: true
+    user_data: |
+      #!/bin/sh
+      yum update -y
+
+...

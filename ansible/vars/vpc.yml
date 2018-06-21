@@ -1,0 +1,38 @@
+---
+
+# Variables for VPC
+vpc_name: "{{ application }}"
+vpc_region: "{{ aws_region }}"
+vpc_cidr_block: 172.25.0.0/16
+public_cidr_1: 172.25.10.0/24
+public_az_1: "{{ vpc_region }}a"
+public_cidr_2: 172.25.20.0/24
+public_az_2: "{{ vpc_region }}b"
+public_cidr_3: 172.25.30.0/24
+public_az_3: "{{ vpc_region }}c"
+
+#
+# Subnets Defination for VPC
+vpc_subnets:
+  - cidr: "{{ public_cidr_1 }}" # Public Subnet-1
+    az: "{{ public_az_1 }}"
+    resource_tags: { "Name":"{{ vpc_name }}-{{ public_az_1 }}-public-subnet" }
+  - cidr: "{{ public_cidr_2 }}" # Public Subnet-2
+    az: "{{ public_az_2 }}"
+    resource_tags: { "Name":"{{ vpc_name }}-{{ public_az_2 }}-public-subnet" }
+  - cidr: "{{ public_cidr_3 }}" # Public Subnet-3
+    az: "{{ public_az_3 }}"
+    resource_tags: { "Name":"{{ vpc_name }}-{{ public_az_3 }}-public-subnet" }
+
+#
+# Routing Table for Public Subnet
+public_subnet_rt:
+  - subnets:
+      - "{{ public_cidr_1 }}"
+      - "{{ public_cidr_2 }}"
+      - "{{ public_cidr_3 }}"
+    routes:
+      - dest: 0.0.0.0/0
+        gw: igw
+
+...

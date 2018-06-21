@@ -1,0 +1,12 @@
+---
+
+- hosts: local
+  sudo: True 
+  remote_user: ec2-user
+  gather_facts: True
+  vars_files:
+    - vars/jenkins.yml
+  roles:
+    - jenkins
+
+...

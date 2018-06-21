@@ -1,0 +1,10 @@
+---
+
+env: dev
+application: jenkins
+aws_region: us-east-2
+server_role: jenkins
+aws_ami: ami-50743f2f
+app_port: 8080
+
+...

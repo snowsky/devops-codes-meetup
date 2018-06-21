@@ -1,0 +1,2 @@
+ami-50743f2f
+password: 5f96eac08f634a11b25c9555d8ddde35

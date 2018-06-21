@@ -1,0 +1,88 @@
+---
+
+- name: remove additional packages for Jenkins
+  package:
+    name: "{{ item }}"
+    state: absent
+  with_items:
+    - "{{ jenkins_excluded_packages|default([]) }}"
+
+- name: install additional packages for Jenkins
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "{{ jenkins_included_packages|default([]) }}"
+
+- name: mounting EFS filesystem for hg checkout
+  mount:
+    name: "/mnt"
+    src: "{{ efs_id }}.efs.{{ aws_region }}.amazonaws.com:/"
+    fstype: nfs4
+    opts: "nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2"
+    state: mounted
+
+- name: download jenkins repo
+  get_url:
+    url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+    dest: /etc/yum.repos.d
+    mode: "0644"
+
+- name: add jenkins key
+  rpm_key:
+    state: present
+    key: https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+
+- name: install Jenkins packages
+  package:
+    name: "jenkins"
+    state: present
+
+- stat: path=~/.ssh/id_rsa
+  become: yes
+  become_user: jenkins
+  register: key_file
+- name: generate SSH key for Wordpress instances
+  shell: ssh-keygen -t rsa -b 2048 -f ~/.ssh/id_rsa -q -N ""
+  become: yes
+  become_user: jenkins
+  when: key_file.stat.exists == False
+
+- name: start Jenkins service
+  service:
+    name: "jenkins"
+    state: started
+    enabled: true
+  tags:
+    - configuration
+
+- name: wait for JVM to come up
+  wait_for:
+    host: localhost
+    port: "{{ app_port }}"
+    delay: 30
+    connect_timeout: 15
+    sleep: 30
+    timeout: 300
+    state: started
+  tags:
+    - configuration
+
+- name: display initial password
+  shell: "cat {{ initpwd_file }}"
+  args:
+    removes: "{{ initpwd_file }}"
+  register: initpwd_sh
+
+- debug: msg="Your initialAdminPassword is {{ initpwd_sh.stdout }}"
+  when: initpwd_sh is defined
+
+- name: get the public key
+  shell: cat ~/.ssh/id_rsa.pub
+  become: yes
+  become_user: jenkins
+  register: pub_key
+- name: public key to add to your Bitbucket repo
+  debug: msg="{{ pub_key.stdout }}"
+
+...

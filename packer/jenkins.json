@@ -1,0 +1,46 @@
+{
+    "variables": {
+      "instance_type": "t2.micro",
+      "source_ami": "ami-97785bed",
+      "region": "us-east-1"
+    },
+
+    "builders": [
+      {
+          "type": "amazon-ebs",
+          "region": "{{user `region`}}",
+          "source_ami": "{{user `source_ami`}}",
+          "instance_type": "{{user `instance_type`}}",
+          "ssh_username": "ec2-user",
+          "ami_name": "Jenkins-{{isotime | clean_ami_name}}",
+          "ami_description": "Jenkins Server",
+          "tags": {
+              "role": "Jenkins_Server"
+          },
+          "run_tags": {
+              "role": "Jenkins"
+          }
+      }
+    ],
+
+    "provisioners": [
+      {
+        "type": "shell-local",
+        "command": "tar cvf jenkins.tar jenkins"
+      },
+      {
+        "type": "file",
+        "source": "jenkins.tar",
+        "destination": "/tmp/"
+      },
+      {
+        "type": "shell",
+        "inline": [
+          "tar xvf /tmp/jenkins.tar -C /tmp/",
+          "sudo pip install ansible==2.4.3 boto boto3",
+          "cd /tmp/jenkins && ls -l && ansible-playbook -c local -i hosts -l local jenkins-install.yml",
+          "rm -fr /tmp/jenkins.tar /tmp/jenkins"
+        ]
+      }
+    ]
+}

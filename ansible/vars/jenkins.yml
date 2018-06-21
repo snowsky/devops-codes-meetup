@@ -1,0 +1,12 @@
+---
+
+jenkins_excluded_packages:
+  - java-1.7.0-openjdk.x86_64
+
+jenkins_included_packages:
+  - java-1.8.0-openjdk.x86_64
+  - git-hg
+
+initpwd_file: "/var/lib/jenkins/secrets/initialAdminPassword"
+
+...

@@ -1,0 +1,30 @@
+---
+
+- hosts: local
+  connection: local
+  gather_facts: no
+  vars_files:
+    - vars/common.yml	
+    - vars/tags.yml	
+    - vars/vpc.yml
+    - vars/ec2.yml
+    - vars/elb.yml
+    - vars/asg.yml
+  roles:
+    - vpc
+    - ec2
+    - elb
+    - asg
+
+- hosts: jenkins
+  sudo: True 
+  remote_user: ec2-user
+  gather_facts: True
+  vars_files:
+    - vars/common.yml
+    - vars/jenkins.yml
+  roles:
+    - common
+    - jenkins
+
+...

@@ -1,0 +1,42 @@
+---
+
+lc_name: "{{ vpc_name }}-{{ vpc_region }}-LC"
+asg_lc_info:
+ - name: "{{ lc_name }}"
+   ami_instance_id: "{{ aws_ami }}"
+   keypair_name: ""
+   instance_type: "t2.small"
+   public_ip: yes
+   ebs_optimized: no
+#   instance_iam_role: ""
+   instance_monitoring: true
+   user_data: |
+              #!/bin/sh
+              pip install awscli ansible==2.4.3 boto boto3
+   volumes:
+     - device_name: /dev/xvda
+       device_type: gp2
+       volume_size: 10
+       delete_on_termination: true
+#       encrypted: true
+
+asg_info:
+ - name: "{{ vpc_name }}-{{ vpc_region }}-ASG"
+   lc_name: "{{ lc_name }}"
+   subnets:
+     - "{{ public_subnet_1 }}"
+     - "{{ public_subnet_2 }}"
+     - "{{ public_subnet_3 }}"
+   replace_all_instances: no
+   replace_batch_size: 1
+   min_size: 1
+   max_size: 2
+   desired_capacity: 1
+   default_cooldown: 300
+   health_check_period: 300
+   health_check_type: EC2
+   termination_policies: OldestLaunchConfiguration    # [OldestInstance|NewestInstance|OldestLaunchConfiguration|ClosestToNextInstanceHour|Default]
+   wait_for_instances: yes
+   wait_timeout: 300
+
+...

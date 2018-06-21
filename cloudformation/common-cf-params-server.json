@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "JenkinsImageId",
+    "ParameterValue": "ami-50743f2f"
+  },
+  {
+    "ParameterKey": "VPCCIDR",
+    "ParameterValue": "10.1.0.0/16"
+  },
+  {
+    "ParameterKey": "PublicCIDR",
+    "ParameterValue": "10.1.1.0/24"
+  },
+  {
+    "ParameterKey": "KeyName",
+    "ParameterValue": "jenkins"
+  }
+]

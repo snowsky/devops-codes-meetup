@@ -1,0 +1,19 @@
+---
+
+jenkins_excluded_packages:
+  - java-1.7.0-openjdk.x86_64
+
+jenkins_included_packages:
+  - java-1.8.0-openjdk.x86_64
+  - git-hg
+
+env: dev
+application: jenkins
+aws_region: us-east-2
+server_role: jenkins
+aws_ami: ami-976152f2
+app_port: 8080
+
+initpwd_file: "/var/lib/jenkins/secrets/initialAdminPassword"
+
+...

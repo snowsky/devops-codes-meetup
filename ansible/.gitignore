@@ -1,0 +1,6 @@
+*.swp
+*.swo
+*.retry
+hosts
+efs_info.yml
+ssh_key/*
